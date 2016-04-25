@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <fstream>
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
@@ -37,6 +38,7 @@ sd_t radio;
 int err;
 int value;
 bool newEvent = false;
+FILE *pFile;
 
 int joy_fd, num_of_axis = 0, num_of_buttons = 0, pid_mode = 0, pid_type = 0;
 float* offsets = NULL;
@@ -46,8 +48,8 @@ char *button = NULL, name_of_joystick[80];
 struct js_event jsBuffer[0xff];
 
 // Create a ZMQ socket to publish.
-//zmq::context_t context(1);
-//zmq::socket_t socket(context, ZMQ_PUB);
+zmq::context_t context(1);
+zmq::socket_t socket(context, ZMQ_PUB);
 char mbuf[1024];
 int mlen = 0;
 unsigned char* float2Array(float fval) {
@@ -116,8 +118,8 @@ void sighandler(int sig) {
 void publishMessage(char *buf, int len) {
 	zmq::message_t message(len);
 	memcpy(message.data(), buf, len);
-	printf("%s\n", buf);
-//	socket.send(message);
+	// printf("%s\n", buf);
+	socket.send(message);
 }
 
 void processEvent(unsigned char* cmd, int messageLength) {
@@ -133,64 +135,21 @@ void processEvent(unsigned char* cmd, int messageLength) {
 
 void readRadioData() {
 	int bytesAvailable = 0;
-	int bufSize = 32, bufIdx = 0;
+	int bufSize = 512, bufIdx = 0;
 	unsigned char buf[bufSize];
 	char rb = ' ';
-	int resp[7];
-	bool messageReady = false;
 
-	memset(&buf[0], 0, bufSize);
-	bytesAvailable = read(radio.fd, buf, bufSize);
-	int state = 0;
-	int b = 0;
 	while (true) {
-		if (bytesAvailable > 0) {
-			while (bytesAvailable > 0) {
-				if (state == 0) {
-					b = 0;
-					messageReady = false;
-					rb = (char)buf[bufIdx++];
-					bytesAvailable--;
-
-					// Check for the start of a message.
-					if (rb == 'm') state = 1;
-					else state = 0;
-					continue;
-				}
-				else if (state == 1) {
-					// Read a byte.
-					resp[b] = buf[bufIdx++];
-					bytesAvailable--;
-			printf("B: %d: %c\n", b, resp[b]);
-
-					if ((char)resp[b] == 'm') {
-						messageReady = false;
-						b = 0;
-						continue;
-					}
-
-					b++;
-
-					if (b == 6) messageReady = true;
-				}
-
-				if (messageReady == true) {
-					for (b = 0; b < 6; b++) {
-						printf("%c", resp[b]);
-					}
-					printf("\n");
-					state = 0;
-				}
-
-				memset(&buf[0], 0, bufSize);
-				bytesAvailable = read(radio.fd, buf, bufSize);
-				bufIdx = 0;
-			}
-		}
-
+		bufIdx = 0;
 		memset(&buf[0], 0, bufSize);
 		bytesAvailable = read(radio.fd, buf, bufSize);
-		bufIdx = 0;
+		if (bytesAvailable > 0) {
+			// printf("%s", buf);
+			// pFile = fopen("status.txt", "w");
+			// fprintf(pFile, "%s", buf);
+			// fclose(pFile);
+			publishMessage((char*)buf, bufSize);
+		}
 	}
 }
 
@@ -385,7 +344,7 @@ void doHeartbeat() {
 		// build a command.
 		cmd[0] = 'h';
 		cmd[1] = '0';
-		printf("HEARTBEAT\n");
+		// printf("HEARTBEAT\n");
 
 		// Send the command.
 		processEvent(cmd, HEARTBEAT_MESSAGE_LENGTH);
@@ -466,7 +425,7 @@ int main(int argc, char **argv) {
 //	}
 
 	// Bind the socket.
-//	socket.bind("tcp://*:5555");
+	socket.bind("tcp://*:5555");
 
 	mlen = sprintf(mbuf, "radio: ready");
 	publishMessage(mbuf, mlen);
