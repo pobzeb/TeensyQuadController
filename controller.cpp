@@ -32,10 +32,10 @@
 #define MAX_OUT_VALUE 2000
 
 #define THROTTLE_INPUT		 2
-#define PITCH_INPUT			 1
-#define ROLL_INPUT			 0
-#define YAW_INPUT			 5
-#define DIAL_INPUT 			 4
+#define PITCH_INPUT		 1
+#define ROLL_INPUT		 0
+#define YAW_INPUT		 5
+#define DIAL_INPUT 		 4
 #define ARM_TOGGLE_INPUT	 3
 
 using namespace std;
@@ -157,7 +157,7 @@ void processJoystickEvents(int joystick_fd) {
 
 						if (jsBuffer[idx].number == DIAL_INPUT) {
 							// Dial
-							channel[4] = map(jsBuffer[idx].value, MIN_VALUE, MAX_VALUE, 0, 1000);
+							channel[4] = map(jsBuffer[idx].value, MIN_VALUE, MAX_VALUE, 0, 100);
 						}
 						else if (jsBuffer[idx].number == ARM_TOGGLE_INPUT) {
 							channel[5] = jsBuffer[idx].value > 0 ? 2000 : 1000;
