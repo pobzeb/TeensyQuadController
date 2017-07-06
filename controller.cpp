@@ -147,10 +147,6 @@ void processJoystickEvents(int joystick_fd) {
 							// Roll
 							channel[3] = value + rollOffset;
 						}
-						else if (jsBuffer[idx].number == YAW_INPUT) {
-							// Yaw
-							channel[1] = value + yawOffset;
-						}
 
 						// Map value to new min and max.
 						value = map(jsBuffer[idx].value, MIN_VALUE, MAX_VALUE, MIN_OUT_VALUE, MAX_OUT_VALUE);
@@ -161,6 +157,10 @@ void processJoystickEvents(int joystick_fd) {
 						}
 						else if (jsBuffer[idx].number == ARM_TOGGLE_INPUT) {
 							channel[5] = jsBuffer[idx].value > 0 ? 2000 : 1000;
+						}
+						else if (jsBuffer[idx].number == YAW_INPUT) {
+							// Yaw
+							channel[1] = value + yawOffset;
 						}
 
 						break;
